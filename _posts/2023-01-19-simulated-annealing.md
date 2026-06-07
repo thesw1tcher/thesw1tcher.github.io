@@ -1,38 +1,40 @@
 ---
 layout: post
-title: "Converging on Simulated Annealing"
+title: "Сходимость алгоритма имитации отжига"
 image: assets/img/2023-01-19/cover.png
 ---
 
 {% include plotly.html %}
 
-# What is Simulated Annealing?
+_Перевод статьи [Converging on Simulated Annealing](https://bminaiev.github.io/simulated-annealing) Бориса Минаева_
 
-**Simulated Annealing** (SA) is the main algorithm in optimization-style programming competitions. Almost every Topcoder Marathon or Atcoder Heuristic Contest winner probably used SA. There are a lot of articles on the Internet about SA, so I'll assume you already know the basics. I recommend [this one](https://codeforces.com/blog/entry/94437).
+# Что такое имитация отжига?
 
-The problem with all of them is that they explain the algorithm, but don't share ideas about how to choose parameters. We will try to fix it in this blog.
+**Имитация отжига** (отжиг) - основной алгоритм в контестах на оптимизацию. Почти каждый победитель Topcoder Marathon или Atcoder Heuristic Contest скорее всего когда-то писал отжиг. В интернете есть много статей про этот алгоритм, поэтому я предполагаю, что вы уже знакомы с основами. Я рекомендую [вот эту статью](https://codeforces.com/blog/entry/94437). _(прим.: эта статья на английском, подойдёт и [эта](https://algorithmica.org/ru/annealing))._
 
-_Disclaimer: I myself don't have a lot of experience with optimization style contests, so all facts in this blog should be taken with a grain of salt. But still, I was a member of the team, which won Google HashCode twice, where SA could be used in solutions._
+Проблема всех этих статей в том, что в них объясняется, как работает алгоритм, но нет идей о том, как подбирать параметры. В этой статье мы попробуем это исправить.
 
-# Travelling salesman problem
+_Дисклеймер: У меня самого не так много опыта в оптимизационных контестах, поэтому ко всему сказанному в статье стоит относиться с осторожностью. Но тем не менее, я был членом команды, которая дважды выигрывала Google HashCode, в котором отжиг может использоваться в решениях._
 
-In this blog, we will analyze the usage of SA for one specific instance of **Travelling salesman problem** (TSP). In TSP you are given `n` cities and distances between all of them. You need to find the shortest cycle, which visits every city exactly once. I took a specific TSP task from this old [CodeForces post](https://codeforces.com/blog/entry/3703), it has **100** cities.
+# Задача коммивояжёра (Traveling Salesman Problem, TSP)
 
-How can we use SA for solving TSP? First, we can say that the solution can be represented as a permutation of numbers from `1` to `n` -- an order in which we visit cities. Second, we need to define possible transitions. In this case we will use a single possible change of the solution, which is called [2-opt](https://en.wikipedia.org/wiki/2-opt). The idea is to take a random subsegment of our permutation and reverse it.
+В этой статье мы проанализируем использование отжига для решения одного конкретного случая **задачи коммивояжёра**. Даны `n` городов и расстояния между каждой их парой. Нужно найти кратчайший цикл, в котором каждый город посещается ровно один раз. Я взял задачу из старого [блога на CF](https://codeforces.com/blog/entry/3703), там **100** городов.
+
+Как можно использовать отжиг для решения задачи коммивояжёра? Для начала заметим, что решение может быть представлено как перестановка от `1` до `n` -- это порядок, в котором мы посещяем города. Далее нужно понять, какие здесь возможны переходы. В этой ситуации мы будем использовать один из возможных переходов, который называется [2-opt](https://en.wikipedia.org/wiki/2-opt) -- берём случайный подотрезок перестановки и переворачиваем его.
 
 {:refdef: style="text-align: center;"}
 ![](/assets/img/2023-01-19/rev.png)
 {: refdef}
 
-# The code
+# Код
 
-Let's write some code. The problem is in all posts about SA you can find different formulas, different temperature schedules, different \<X\>... What should we use?
+Давайте напишем какой-нибудь код. Проблема в том, что во всех статьях про отжиг можно найти разные формулы, разные способы изменения температуры, различные \<X\>... Что именно мы должны использовать?
 
-_Btw, I think this is exactly what stopped me from using SA in the past. There were so many tutorials, I picked a random one, it didn't work well, and I just used different algorithms, which I knew, instead._
+_Кстати, думаю, это именно то, что останавливало меня от использования отжига в прошлом. Среди множества туториалов я выбирал один случайный, он не работал хорошо и я просто использовал другие алгоритмы, которые знал._
 
-But now I know the right way. We can just take a look at how [Psyho](https://cphof.org/profile/topcoder:Psyho) implements it :) I opened his [code](https://github.com/FakePsyho/cpcontests/blob/master/atcoder/ahc012/main.cpp) from the last Atcoder Heuristic Contest, and guess what I saw? Right, implementation of the SA.
+Но теперь я знаю правильный способ. Мы можем просто посмотреть код у [Psyho](https://cphof.org/profile/topcoder:Psyho) :) Я открыл его [решение] (https://github.com/FakePsyho/cpcontests/blob/master/atcoder/ahc012/main.cpp) с последнего контеста Atcoder Heuristic, и знаете что я увидел? Правильно, реализацию отжига.
 
-So I wrote the code to solve TSP, which uses the same formulas (but with different `temp_start` and `temp_end`):
+Поэтому я написал код для коммивояжёра, который использует те же формулы (но с другими `temp_start` and `temp_end`):
 
 ```rust
 const MAX_SEC: f64 = 1.0;
@@ -52,10 +54,10 @@ loop {
    perm[fr..to].reverse();
    let new_score = calc_score(&dists, &perm);
    if new_score < prev_score || fastrand::f64() < ((prev_score - new_score) / temp).exp() {
-       // Using a new state!
+       // Переходим в новое состояние!
        prev_score = new_score;
    } else {
-       // Rollback
+       // Откат
        perm[fr..to].reverse();
    }
 }
@@ -63,205 +65,186 @@ let score = calc_score(&dists, &perm);
 eprintln!("Score: {score}");
 ```
 
-It is quite short! And it probably works better than most of the smart algorithms you can come up with!
+Он допольно короткий! И скорее всего работает лучше чем большинство умных алгоритмов, которые вы можете предложить!
 
-There is some magic happens in the `temp_start * (temp_end / temp_start).powf(elapsed_frac)` and
-`fastrand::f64() < ((prev_score - new_score) / temp).exp()` parts. I'll leave it as an exercise to you to understand them,
-but in fact you don't need to know how they work. You can just copy it every time you want to use SA.
+Здесь происходит немного магии в частях с `temp_start * (temp_end / temp_start).powf(elapsed_frac)` и 
+`fastrand::f64() < ((prev_score - new_score) / temp).exp()`. Понимание того, как они работают, оставлю как упражнение читателю,
+но на самом деле вам и не особо нужно это знать. Можно просто копировать их каждый раз, когда пишете отжиг.
 
-The really interesting part is just two simple lines:
+По-настоящему интересная часть -- вот эти две строчки:
 
 ```rust
 let temp_start = 10.0f64;
 let temp_end = 0.001f64;
 ```
 
-How should we choose constants here? This time I just picked them kinda randomly from my experience, but this is not the advice you want, right?
+Как мы должны подбирать эти константы? Здесь я выбрал их примерно случайно, опираясь на свой опыт, но это не тот совет, который вы хотите получить, не так ли?
 
-Back to our TSP instance. We can run our code and get the result:
+Обратно к нашему коду для коммивояжёра. Мы можем его запустить и получить результат:
 
 ```
 Score: 7.867000846582566
 ```
 
-Is it good? Is everything ok? Can we do better? Should we change our constants?
+Это хороший скор? Всё ли хорошо? Можно ли получить результат лучше? Нужно ли поменять наши константы?
 
-It is hard to answer just from one number. We are not in a rush now, so we can visualize some data to get more insight into what could be improved.
+На это трудно ответить, имея всего одно число. Сейчас мы никуда не торопимся, поэтому можем просто визуализировать данные, чтобы получить больше понимания насчёт того, что мы можем улучить.
 
-# Let's visualize!
+# Давайте визуализировать!
 
-_Disclaimer: there are a lot of plots in this post, and they are interactive (you can zoom into interesting parts). It is easier to interact with them on a device with a big screen. But if you still want to read it from the phone, consider rotating it to landscape mode and refreshing the page._
+_Дисклеймер: в этой статье много графиков и они интерактивные (можно увеличивать интересующие части). С ними проще взаимодействовать на устройстве с большим экраном. Но если читаете со смартфона, возможно, стоит повернуть экран и перезагрузить страницу._
 
-First, we can just draw a plot of the score depending on time.
+Для начала давайте нарисуем график скора от времени.
 
 {% include posts/2023-01-19/first_version.html %}
 
-It looks roughly as expected. We start from a random solution with a big score (total distance) and spend some time with a high temperature, which accepts bad transitions, so the overall score is still high. But as time goes on, temperature decreases and we slowly converge to a small score.
+Он выглядит примерно так, как и ожидалось. Мы начинаем с рандомного решения с большим счётом (суммарной дистанцией) и проводим какое-то время с высокой температурой, которая позволяет делать плохие переходы, поэтому в целом скор всё ещё высокий. Но со временем температура понижается и мы медленно сходимся к дистанции меньше.
 
-Sometimes it is also useful to draw several runs on the same plot to make sure all of them look similar.
+Иногда также полезно рисовать одни и те же графики, но от нескольких разных запусков, чтобы убедиться в том, что все они выглядят примерно одинаково.
 
 {% include posts/2023-01-19/several_times.html %}
 
-Let's take a closer look at what happens in the last 0.2 seconds.
+Давайте поближе рассмотрим, что происходит в последние 0.2 секунды.
 
 {% include posts/2023-01-19/several_times_08.html %}
 
-Some thoughts:
+Немного мыслей:
 
-- For each specific run, the score at 0.8s is roughly the same as at 1.0s, which means we waste 20% of our time.
-- Different runs end at different scores (and different permutations), so running the algorithm several times could help find a better solution.
+- Для каждого отдельного прохода, результат на 0.8с примерно такой же, как и на 1.0с, что означает, что мы тратим впустую 20% времени.
+- Разные проходы заканчиваются с разными скорами (и разными перестановками), поэтому запуск алгоритма несколько раз может помочь найти более хорошее решение.
 
-# Save the best
+# Сохранение лучшего результата
 
-Let's optimize a single run. We can draw not only the current score, but the best score has seen so far:
+Давайте соптимизируем единичный пробег. Мы можем выводить не только текущий результат, но и лучший, который мы пока встретили:
 
 {% include posts/2023-01-19/cur_and_best.html %}
 
-_For each point on the orange line, there should be a point from the blue line with the same score, which happened before.
-But we don't see this happening on the plot, because points were sampled, and a lot of interesting blue points just were not lucky enough to
-stay on the plot._
+_Для каждой точки на оранжевом графике должна быть точка на синем с таким же значением, которое было достигнуто ранее.
+Но мы не видим этого на графике, потому что для отрисовки графика были взяты не все точки, и многим интересным синим точкам просто не повезло попасть на график._
 
-And let's zoom into what happens in the end:
+И давайте приблизим то, что происходило в конце:
 
 {% include posts/2023-01-19/cur_and_best_suf.html %}
 
-The point, I want to illustrate here, is that if we terminate an algorithm at the wrong moment, and we use the last score
-instead of the best one (this is exactly what we do in the code above), we can get a much worse result, so **always save the best result instead of the last**.
+Суть того, что я хочу показать здесь, в том, что если мы остановим алгоритм в неподходящий момент и будем использовать последнее решение вместо лучшего (буквально то, что мы делаем в коде выше), то мы можем получить результат намного хуже, поэтому **всегда сохраняйте лучший результат вместо последнего.**
 
-# Choosing parameters
+# Выбор параметров
 
-Why do we spend the last 20% of the time doing nothing? Why do we spend the first 50% of our time with a very bad score?
+Почему мы проводим последние 20% времени, занимаясь примерно ничем? Почему мы проводим первую половину времени с очень плохим скором?
 
-Let's try to choose different `temp_start` and `temp_end` and see what score we get. We use logarithmic scales for the axis.
-And don't forget that **plots are interactive, so you can rotate them**! Here each point represents one experiment.
+Давайте попробуем выбрать другие `temp_start` и `temp_end` и посмотрим, какой результат мы получим. Для осей используются логарифмические шкалы.
+И не забывайте, что **графики интерактивные, поэтому их можно всячески крутить**! Здесь каждой точке соответствует один эксперимент.
 
 {% include posts/2023-01-19/choosing_params.html %}
 
-Smaller scores are better, so the only conclusion we can definitely make is that `temp_end` should be smaller than 0.01 (otherwise we just accept bad transitions till the end and never get a good solution).
-Ok, let's leave only smaller parameters, and rerun the experiment.
+Меньшие скоры лучше, поэтому единственный вывод, который мы точно можем сделать -- это то, что `temp_end` должна быть меньше 0.01 (иначе мы просто делаем плохие переходы до конца и никогда не получаем хорошее решение).
+Ок, давайте оставим только параметры поменьше и перезапустим эксперимент.
 
 {% include posts/2023-01-19/choosing_params2.html %}
 
-Ok, now let's also say that `temp_start` should be at least 0.1 (otherwise we don't explore the full space of solutions and just converge to some local optimum).
+Хорошо, теперь давайте так же скажем, что `temp_start` должна быть как минимум 0.1 (в ином случае мы не исследуем всё пространство решений и сходимся к локальному оптимуму).
 
 {% include posts/2023-01-19/choosing_params3.html %}
 
-Now we see that after removing completely bad temperature parameters, results for all others look pretty random. We can also
-say that our initial randomly picked parameters `temp_start = 10.0` and `temp_end = 0.001` are inside the range.
+Теперь мы видим, что после удаления очевидно плохих стартовых температур, результаты для всех остальных выглядят довольно случайно. Помимо этого можно сказать, что `temp_start = 10.0` и `temp_end = 0.001` находятся внутри диапазона.
 
-## Optimal answer
+## Лучший ответ
 
-For this specific case of TSP, there is a known optimal answer, which we actually found several times. Let's take a look
-at which start parameters this happens more often. I created a 10x10 grid with different `temp_start` and `temp_end`, for each
-cell ran 5000 experiments, and calculated the probability of finding the optimal solution.
+Для конкретно этого случая TSP, существует заранее известный лучший ответ, который мы на самом деле несколько раз уже находили. Давайте посмотрим, с какими стартовыми параметрами это случается чаще. Я нарисовал сетку 10x10 с разными `temp_start` and `temp_end`, для каждой из ячеек запустил по 5000 пробегов и посчитал вероятность нахождения оптимального решения. 
 
 {% include posts/2023-01-19/optimal_answers_new2.html %}
 
-From the previous plot, it was hard to compare "reasonable" start parameters, but now we can see some patterns.
+На предыдущем графике было проблематично сравнивать "разумные" стартовые параметры, но теперь мы можем увидеть некоторые закономерности.
 
-For example, with big `temp_start = 70` you still have chances to find the optimal answer, but this chance could be several
-times smaller compared to the optimal starting parameters. This probably happens because with high `temp_start`, we spend a lot
-of time accepting random changes instead of actually trying to find a good solution.
+Например, с большой `temp_start = 70` всё ещё есть шансы сойтись к оптимальному решению, но вероятность этого может быть в несколько раз меньше в сравнении с лучшими стартовыми параметрами. Вероятно, так происходит потому, что с большой `temp_start` мы проводим слишком много времени, делая случайные изменения вместо того, чтобы на самом деле пытаться найти хорошее решение.
 
-Now I think I have started to understand [Psyho's reply about choosing parameters](https://twitter.com/FakePsyho/status/1605936691033915392). The starting temperature should be **high enough** to be able to visit all possible states, **but not
-higher**, because otherwise we just spend a lot of time picking a random starting point.
+Теперь я думаю, что начал понимать [ответ Psyho насчёт нахождения параметров](https://twitter.com/FakePsyho/status/1605936691033915392). Начальная температура должна быть **достаточно высокой**, чтобы была возможность посетить все возможные состояния, **но не выше**, потому что так мы будем просто тратить слишком много времени, выбирая случайную стартовую точку.
 
-Let's build the same `Score(Time)` plot as at the beginning for more optimal initial parameters (`temp_start=0.2; temp_end=5e-3`). And again we run the program
-several times to make sure all of the runs look similar.
+Давайте построим такой же график `Score(Time)`, какой строили в начале, для более оптимальных начальных параметров (`temp_start=0.2; temp_end=5e-3`). И снова запустим код несколько раз, чтобы убедиться, что все пробеги выглядят примерно одинаково.
 
 {% include posts/2023-01-19/better_start_params.html %}
 
-The plot is quite different, right? Now we don't spend the first half of the time on nothing.
+График стал немного другим, правда? Теперь мы не тратим первую половину времени, не делая примерно ничего.
 
-# 10x1s or 1x10s?
+# 10x1s или 1x10s?
 
-From the previous heatmap, you can see that with optimal initial parameters, you can achieve the best score in ~3% of runs. This means
-on average you need to run your program 33 times (and spend 33 seconds) to get the optimal score. But maybe it is more optimal
-to run the program once, but for a longer period of time. Let's check.
+На предыдущей тепловой карте видно, что с хорошими стартовыми параметрами можно достичь оптимального решения примерно в 3% пробегов. Это значит, что в среднем нужно запустить программу 33 раза(и потратить 33 секунды), чтобы получить оптимум. Но возможно, что более оптимально будет запустить алгоритм один раз, но на более длительный период времени.
+Стоит помнить, что мы выбрали лучшие начальные параметры для алгоритма, работающего одну секунду. Вполне возможно, что при другом времени работы оптимальные параметры будут другими. Но давайте пока об этом не думать.
 
-One thing to keep in mind is that we picked the best initial parameters for the 1s algorithm. Potentially, if we want to run
-it longer, the parameters should be different. But let's not think about it for a while.
+| Время одного пробега | Вероятность нахождения оптимального решения | Ожидаемое время нахождения оптимального решения |
+| :------------------: | :-----------------------------------------: | :---------------------------------------------: |
+|        0.1s          |                    0.6%                     |                     16.5s                       |
+|      **0.2s**        |                  **1.3%**                   |                   **15.8s**                     |
+|        0.5s          |                    2.3%                     |                     22.1s                       |
+|         1s           |                    3.0%                     |                     33.0s                       |
+|         2s           |                    3.5%                     |                     57.5s                       |
+|         5s           |                    6.4%                     |                     78.1s                       |
+|         10s          |                    6.5%                     |                    153.8s                       |
 
-| Single run time | Probability of finding optimal solution | Expected time to find optimal solution |
-| :-------------: | :-------------------------------------: | :------------------------------------: |
-|      0.1s       |                  0.6%                   |                 16.5s                  |
-|    **0.2s**     |                **1.3%**                 |               **15.8s**                |
-|      0.5s       |                  2.3%                   |                 22.1s                  |
-|       1s        |                  3.0%                   |                 33.0s                  |
-|       2s        |                  3.5%                   |                 57.5s                  |
-|       5s        |                  6.4%                   |                 78.1s                  |
-|       10s       |                  6.5%                   |                 153.8s                 |
+Хорошо, конкретно в этом случае мы можем увидеть, что запуск алгоритма с большим лимитом по времени увеличивает вероятность нахождения оптимального решения, но общая эффективность уменьшается. Поэтому лучше даже сократить TL до 0.2с, и запустить алгоритм несколько раз в течение исходного лимита в одну секунду.
 
-Well, in this specific problem, we can see that running an algorithm with a bigger Time Limit increases the probability
-of finding an optimal solution, but the overall effectiveness decreases. So it is even better to limit our
-algorithm to 0.2s, and run it more times than using our original 1s limit.
+Интуитивно это случается, потому что пространство решений относительно мало, и 0.2с уже достаточно, чтобы подобрать хорошее решение. Но так случается не всегда, для некоторых больших случаев TSP или для друхих задач возможно, что запуск алгоритма единожды на более длительный отрезок времени будет более оптимальным. Поэтому всегда проверяйте, что будет лучше конкретно в вашем случае.
 
-Intuitively it happens because the solution space is relatively small, and 0.2s is already enough for an algorithm to
-pick a good solution. But it is not always the case, for some bigger cases of TSP or for different problems,
-it is possible that running the algorithm once for a longer period is more optimal. So you always need to check what
-works better for a specific task.
+# Подбор параметров. Часть 2.
 
-# Choosing parameters. Part 2.
+Мы увидели, насколько выбор стартовых параметров может повлиять на вероятность нахождения оптимума.
+Например, есть очень плохие решения (слишком маленькая `temp_start` или большая `temp_end`), которые приводят к очень плохим результатам. Но в остальных случаях результат скорее всего будет адекватным.
 
-We looked at how different starting parameters could affect the probability of finding the optimal solution.
-For example, there are some very bad choices (too small `temp_start` or too big `temp_end`), which lead to
-very bad results. But in other cases, results will probably be reasonably good.
+Допустим, если вы зададите `temp_start` слишком большим и `temp_end` слишком маленьким значением, то ваш алгоритм потратит первые 40% времени на случайные изменения решения, и последние 40% не делая изменений вообще. Но он всё ещё потратит 20% посередине так же эффективно, как потратил бы с оптимальными параметрами. Поэтому если увеличить TL в 5 раз, получится такой же результат.
 
-For example, if you set `temp_start` to a very big value and `temp_end` to a very small one, then your algorithm will spend the first 40% of the time randomly changing the solution, and the last 40% doing no changes at all. But it will still spend the middle 20% the same way it would spend with optimal parameters. So if you can increase the Time Limit by 5 times, you will get the same result.
+Так что если вы решаете отжигом какую-то специфическую задачу локально, вы можете сначала запустить код с очень неэффективными параметрами, оценить, какого результата можно достичь и затем попробовать сдвинуть `temp_start` и `temp_end` ближе друг к другу и убедиться, что результат всё ещё достаточно хороший.
 
-So if you are solving some specific task locally with SA, you can initially run it with very inefficient parameters, estimate what the score should be, and then try to move `temp_start` and `temp_end` closer to each other, and check that the score is still good enough.
+Мы можем воспользоваться тем, что функция ожидаемого скора в зависимости от `temp_start` и `temp_end` примерно независима по параметрам, поэтому сначала можно найти оптимальную `temp_end`, и затем отдельно оптимальную `temp_start`.
 
-We can use the fact that the function of the expected score depending on `temp_start` and `temp_end` is roughly independent by parameters, so you can first find an optimal `temp_end`, and then separately find an optimal `temp_start`.
+# Подбор параметров. Часть 3.
 
-# Choosing parameters. Part 3.
+Но что мы можем сделать, если мы заранее не знаем тестовый пример? Или если результаты очень шумные и сложно подобрать параметры?
 
-But what can we do if we do not know the test case in advance? Or if the results are very noisy and it is hard to choose parameters.
+Давайте посмотрим на другие статистики. На каждой итерации мы решаем, применять ли какое-то изменение или нет, и в зависимости от этого их можно разбить на три категории:
 
-Let's look at another statistic. Whenever we consider applying some change, we can classify it into one of three categories:
+1. Оно улучшает результат, и мы применяем его.
+2. Оно делает результат хуже, но мы всё ещё его применяем.
+3. Оно делает результат хуже, и мы его отбрасываем.
 
-1. It improves the score, and we apply it.
-2. It makes the score worse, but we still apply it.
-3. It makes the score worse, and we discard it.
+Мы можем отслеживать скользящее среднее частей изменений, подходящих под категории (1) и (2).
 
-We can track the moving average of the part of changes falling into categories (1) and (2).
-
-This is how the plot looks like for our optimal temperature parameters (`temp_start=0.2; temp_end=5e-3`):
+Вот так выглядит график для наших оптимальных параметров (`temp_start=0.2; temp_end=5e-3`):
 
 {% include posts/2023-01-19/acceptance_good.html %}
 
-And this is for parameters we used at first (`temp_start=10; temp_end=1e-3`):
+И вот он же, но уже для (`temp_start=10; temp_end=1e-3`), использованных нами в самом начале:
 
 {% include posts/2023-01-19/acceptance_start.html %}
 
-They look pretty different, right? And for different instances of TSP or even for different tasks, optimal plots will probably look similar to optimal plots for this task. So when choosing parameters for SA, we can build such a plot and try to make it look similar to the first one here.
+Они довольно сильно различаются, не так ли? И для различных разновидностей TSP и даже для различных задач, графики оптимальных решений будут выглядеть схоже с оптимальными графиками для этой задачи. Поэтому при выборе параметров для отжига, мы можем построить такой график и попробовать сделать его похожим на первый график тут.
 
-I also think it should be possible to change the temperature automatically based on the acceptance rate, but I've never seen somebody doing this. Let me know if you tried it!
+Я также думаю, что должно быть возможно изменять температуру автоматически на основании соотношения категорий 1 и 2, но я никогда не видел, чтобы кто-то так делал. Дайте мне знать, если вы попробовали такой способ!
 
-# Performance optimizations
+# Оптимизация производительности
 
-Usually, during optimization-style contests it is better to spend time trying different ideas, adding [new types of transitions](http://tsp-basics.blogspot.com/), and so on. Before doing any performance optimizations, try to just increase the time limit and check if it gives you a much better score.
+Обычно на контестах на оптимизацию лучше тратить время на пробу различных идей, добавление [новых видов переходов](http://tsp-basics.blogspot.com/), и так далее. Перед тем, как делать любые улучшения производительности, попробуйте просто увеличить TL и проверить, даёт ли это сильно лучший результат.
 
-But if you really decided to optimize performance, here are a couple of suggestions.
+Но если вы на самом деле хотите улучшить производительность, вот несколько предложений.
 
-First, always print the number of checked transitions per second. Try to estimate how big this value should be, and compare it to the actual value, if it doesn't match -- investigate.
+Для начала всегда выводите количество проверенных переходов в секунду. Попробуйте оценить, насколько большим должно быть это значение, и сравните его с фактическим, если они сильно различаются -- попытайтесь понять, почему так произошло.
 
-For example, let's try to estimate what it should be for our TSP case. Every time we pick a random interval (which is `O(1)`), rotate this interval and calculate the score. Rotating and calculating the score is `O(n)`, where `n=100`.
-So probably the total number of tries should be bigger than one million and smaller than ten million per second.
+Например, давайте попробуем прикинуть, каким оно должно быть в нашем случае. Каждый раз мы берём случайный интервал (что занимает `O(1)`), переворачиваем этот интервал и подсчитываем скор. Переворот и подсчёт результата занимают `O(n)`, где `n=100`.
+Поэтому, вероятно, общее число попыток должно быть больше миллиона и меньше десяти миллионов в секунду.
 
-_I actually wrote this guess before implementing the counter, so let's see if I guessed correctly._
+_Я на самом деле написал эту догадку перед тем, как провести замер, поэтому давайте посмотрим, правильно ли я угадал._
 
 ```
 Average transitions checked: 10'040'966/s
 ```
 
-So it is actually even faster than expected! But we can still check transitions in `O(1)`. When reversing a subsegment of permutation, we only change two edges to two other edges.
+На самом деле наше решение даже быстрее, чем ожидалось! Но мы всё ещё можем проверять переход за `O(1)` -- когда мы переворачиваем подотрезок перестановки, мы меняем только два ребра на два других ребра.
 
-This change is a little bit tricky and requires some carefulness, but it roughly looks like this:
+Это изменение довольно хитрое и требует некоторой осторожности, но примерно выглядит вот так:
 
 ```rust
 let (fr, to) = pick_random_interval_to_reverse(n);
 if to - fr + 1 >= n {
-   // this change does nothing.
+   // это изменение не делает ничего.
    continue;
 }
 
@@ -270,30 +253,30 @@ let v1 = if fr == 0 { perm[n - 1] } else { perm[fr - 1] };
 let v2 = perm[fr];
 let v3 = perm[to - 1];
 let v4 = if to == n { perm[0] } else { perm[to] };
-// we replace edges (v1, v2) and (v3, v4) with (v1, v3) and (v2, v4)
+// меняем (v1, v2) и (v3, v4) местами с (v1, v3) и (v2, v4)
 let score_delta = dists[v1][v3] + dists[v2][v4] - dists[v1][v2] - dists[v3][v4];
 
 
 let new_score = prev_score + score_delta;
 ```
 
-After running it we can see:
+После запуска видим:
 
 ```
 Average transitions checked: 20'397'125/s
 ```
 
-Well, it is two times faster, but it doesn't look like `O(n)` vs `O(1)`. We can run our program under `perf` and see this:
+Хорошо, оно стало быстрее в два раза, но это не выглядит как `O(n)` vs `O(1)`. Можем запустить код из-под `perf` и увидеть это:
 
 {:refdef: style="text-align: center;"}
 ![](/assets/img/2023-01-19/perf.png)
 {: refdef}
 
-If you don't understand asm, you still can see a suspicious `core::time::Duration::as_secs_f64` there. And it is quite a common problem for SA. If your scoring function is `O(1)` and very fast, time measurement becomes the bottleneck. We need to measure time to calculate the current temperature and to determine when to stop.
+Даже если вы не понимаете asm, вы всё ещё можете заметить подозрительное `core::time::Duration::as_secs_f64`. И это довольно распространённая проблема в отжиге. Если функция подсчёта скора занимает `O(1)` и очень быстрая, ботлнеком становится измерение времени -- оно нужно, чтобы вычислить оптимальную температуру и определить, когда нужно остановиться.
 
-The optimization is pretty simple. We can check elapsed time every 128 iterations, and just reuse the same value for the next iterations.
+Оптимизация очень простая. Мы можем обновлять таймер каждые 128 итераций, и просто использовать одно и то же значение для следующих итераций.
 
-Now the loop looks like this:
+Теперь цикл выглядит так:
 
 ```rust
 let mut elapsed_s = 0.0;
@@ -305,47 +288,47 @@ for iter in 0.. {
 }
 ```
 
-And now the performance is better:
+И производительность теперь лучше:
 
 ```
 Average transitions checked: 42'284'052/s
 ```
 
-We can also cache the `temp`, because it requires a costly `powf` function:
+Также можем закешировать `temp`, потому что его вычисление требует тяжёлую функцию  `powf`:
 
 ```
 Average transitions checked: 75'977'403/s
 ```
 
-`fastrand` crate is pretty good, but we can still replace it with our own implementation of a simple [xorshift](https://en.wikipedia.org/wiki/Xorshift) random number generator:
+`fastrand` довольно хорош, но мы все ещё можем заменить его на нашу собственную реализацию генератора случайных чисел [xorshift](https://en.wikipedia.org/wiki/Xorshift):
 
 ```
 Average transitions checked: 81'184'596/s
 ```
 
-In our specific case, we can use hacky optimization. Let's create a `const N: usize = 100` (because we know the size of the input at compile time), and use it during random segment generation. To generate a number from `0` to `n`, we generate a 64-bit number and take it modulo `n`. If `n` is known during compile time, the compiler can replace the modulo operation with a faster instruction.
+Конкретно в нашем случае мы можем использовать немного некорректную оптимизацию. Давайте создадим `const N: usize = 100` (потому что мы знаем размер ввода ещё на этапе компиляции), и будем использовать это `N` во время генерации случайного отрезка. Чтобы сгенерировать случайное число от `0` до `n`, мы генерируем случайное 64-битное число и берём его по модулю `n`. Если `n` известно на этапе компиляции, компилятор может заменить операцию взятия модуля на более быстрые инструкции.
 
 ```
 Average transitions checked: 90'212'640/s
 ```
 
-Great! It is 9 times faster than the initial version. I also ran this version a lot of times with `TimeLimit=0.02s` and found that the probability of finding the optimal solution is `1.1%` (which is similar to the not optimized version with `TimeLimit=0.2s`), and the expected time to find the optimal solution is now `1.8s`, which is much better compared to the initial solution.
+Отлично! Стало в 9 раз быстрее изначальной версии. Я также запускал эту версию много раз с `TimeLimit=0.02s` и обнаружил, что вероятность нахождения оптимального решения -- `1.1%` (что примерно одинаково с неоптимизированной версией с `TimeLimit=0.2s`), и ожидаемое время поиска оптимального решения составляет теперь `1.8s`, что значительно лучше в сравнении с исходной версией.
 
-# The end
+# Заключение
 
-Simulated Annealing is a big topic, and I definitely didn't cover everything. The results could be very different if you will need to solve a bigger instance of TSP or a different task. But I hope you got some insights about how it works, and how to tweak parameters.
+Имитация отжига -- большая тема, и я точно не покрыл всё. Результаты могут сильно отличаться, если вы будуте решать коммивояжёра на большем наборе входных данных, или вообще другую задачу. Но я надеюсь, что вы получили некоторое представление о том, как это работает и как настраивать параметры.
 
-If you don't want to read the full article, here is a short list of advice:
+Если вы не хотите читать статью полностью, вот короткий список советов:
 
-- Always save the best-seen answer, not the last one.
-- Print the number of checked transitions and compare them to your estimations.
-- Draw/print stats about how often you accept bad transitions.
-- To pick `temp_start` and `temp_end` use very big and very small values to estimate the expected score. Then move them closer to each other until everything breaks dramatically.
-- Do not do premature optimizations. Before doing them, increase the TimeLimit and check if the score improves.
-- If you really want to optimize, make a score calculation `O(1)`, cache the time and temperature, and optimize the random number generator.
+- Всегда сохраняйте лучший встретившийся ответ, а не последний.
+- Выводите количество проверенных переходов и сравнивайте это число с вашими ожиданиями.
+- Выводите статистику того, как часто вы делаете плохие переходы.
+- Сначала инициализируйте `temp_start` и `temp_end` очень маленьким и очень большим значениями, чтобы оценить ожидаемый результат. Затем двигайте их ближе друг к другу, пока всё не сломается.
+- Не оптимизируйте код сразу. Сначала увеличьте TL и проверьте, улучшается ли результат.
+- Если вы действительно хотите оптимизировать, сделайте подсчёт скора за `O(1)`, кешируйте время и температуру и оптимизируйте генератор случайных чисел.
 
-You can check the source code of all the experiments on [GitHub](https://github.com/bminaiev/simulated-annealing).
+Код всех экспериментов доступен на [GitHub](https://github.com/bminaiev/simulated-annealing).
 
 ---
 
-If you read till this point and know Russian, consider subscribing to my Telegram channel with similar posts: [https://t.me/bminaiev_blog](https://t.me/bminaiev_blog).
+Если вы дочитали до этого момента, рассмотрите возможность подписки на мой канал с похожими постами: [https://t.me/bminaiev_blog](https://t.me/bminaiev_blog).
