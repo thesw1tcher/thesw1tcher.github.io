@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Сходимость алгоритма имитации отжига"
-image: assets/img/2023-01-19/cover.png
+image: 2023-01-19/cover.png
 ---
 
 {% include plotly.html %}
