@@ -1,10 +1,12 @@
 ---
 layout: post
-title: "Сходимость в имитации отжига -- перевод статьи [Converging on Simulated Annealing](https://bminaiev.github.io/simulated-annealing) Бориса Минаева"
+title: "Сходимость в имитации отжига — перевод статьи Converging on Simulated Annealing Бориса Минаева"
 image: 2023-01-19/cover.png
 ---
 
 {% include plotly.html %}
+
+_[Ссылка на оригинал](https://bminaiev.github.io/simulated-annealing)_
 
 # Что такое имитация отжига?
 
